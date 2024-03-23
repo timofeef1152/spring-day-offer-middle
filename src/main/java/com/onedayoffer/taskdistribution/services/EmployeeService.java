@@ -5,13 +5,20 @@ import com.onedayoffer.taskdistribution.DTO.TaskDTO;
 import com.onedayoffer.taskdistribution.DTO.TaskStatus;
 import com.onedayoffer.taskdistribution.repositories.EmployeeRepository;
 import com.onedayoffer.taskdistribution.repositories.TaskRepository;
+import com.onedayoffer.taskdistribution.repositories.entities.Employee;
+import com.onedayoffer.taskdistribution.repositories.entities.Task;
+
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
+
+import org.springframework.data.domain.Sort;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -21,33 +28,44 @@ public class EmployeeService {
     private final TaskRepository taskRepository;
     private final ModelMapper modelMapper;
 
-    public List<EmployeeDTO> getEmployees(@Nullable String sortDirection) {
-        throw new java.lang.UnsupportedOperationException("implement getEmployees");
-
-        // if sortDirection.isPresent() ..
-        // Sort.Direction direction = ...
-        // employees = employeeRepository.findAllAndSort(Sort.by(direction, "fio"))
-        // employees = employeeRepository.findAll()
-        // Type listType = new TypeToken<List<EmployeeDTO>>() {}.getType()
-        // List<EmployeeDTO> employeeDTOS = modelMapper.map(employees, listType)
+    public List<EmployeeDTO> getEmployees(@Nullable Sort sort) {
+        List<Employee> employees;
+        if (Objects.isNull(sort)) {
+            employees = employeeRepository.findAll();
+        } else {
+            employees = employeeRepository.findAllAndSort(sort);
+        }
+        return employees.stream().map(employee -> modelMapper.map(employee, EmployeeDTO.class)).toList();
     }
 
     @Transactional
     public EmployeeDTO getOneEmployee(Integer id) {
-        throw new java.lang.UnsupportedOperationException("implement getOneEmployee");
+        return employeeRepository.findById(id)
+                                 .map(employee -> modelMapper.map(employee, EmployeeDTO.class))
+                                 .orElseThrow(
+                                         () -> new NotFoundException(String.format("Employee '%s' not found", id)));
     }
 
     public List<TaskDTO> getTasksByEmployeeId(Integer id) {
-        throw new java.lang.UnsupportedOperationException("implement getTasksByEmployeeId");
+        return taskRepository.findAllByEmployeeId(id)
+                             .stream()
+                             .map(task -> modelMapper.map(task, TaskDTO.class))
+                             .toList();
     }
 
     @Transactional
     public void changeTaskStatus(Integer taskId, TaskStatus status) {
-        throw new java.lang.UnsupportedOperationException("implement changeTaskStatus");
+        Optional<Task> optionalTask = taskRepository.findById(taskId);
+        optionalTask.ifPresent(task -> task.setStatus(status));
     }
 
     @Transactional
     public void postNewTask(Integer employeeId, TaskDTO newTask) {
-        throw new java.lang.UnsupportedOperationException("implement postNewTask");
+        Task task = modelMapper.map(newTask, Task.class);
+        Employee employee = employeeRepository.findById(employeeId)
+                                              .orElseThrow(() -> new NotFoundException(
+                                                      String.format("Employee '%s' not found", employeeId)));
+        task.setEmployee(employee);
+        taskRepository.save(task);
     }
 }
