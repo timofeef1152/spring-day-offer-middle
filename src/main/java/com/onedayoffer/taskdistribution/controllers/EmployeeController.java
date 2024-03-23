@@ -44,8 +44,7 @@ public class EmployeeController {
 
     @PatchMapping("{id}/tasks/{taskId}/status")
     @ResponseStatus(HttpStatus.OK)
-    public void changeTaskStatus(@PathVariable Integer ignored, @PathVariable Integer taskId,
-                                 @RequestParam(name = "newStatus") String newStatus) {
+    public void changeTaskStatus(@PathVariable(name = "id") Integer ignored, @PathVariable Integer taskId, @RequestParam(name = "newStatus") String newStatus) {
         employeeService.changeTaskStatus(taskId, TaskStatus.valueOf(newStatus));
         //TaskStatus status = TaskStatus.valueOf(newStatus);
         //employeeService.changeTaskStatus ...
